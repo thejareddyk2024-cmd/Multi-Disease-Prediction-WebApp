@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Breast Cancer Risk Prediction | MediPredict</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #021a12 0%, #063322 50%, #031a10 100%);
+            background-size: 250% 250%;
+            animation: bgShift 16s ease infinite, fadeInPage 0.65s ease both;
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        @keyframes bgShift {
+
+            0%,
+            100% {
+                background-position: 0% 60%;
+            }
+
+            50% {
+                background-position: 100% 40%;
+            }
+        }
+
+        @keyframes fadeInPage {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        nav {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #34d399;
+            text-decoration: none;
+            margin-right: auto;
+        }
+
+        nav a {
+            color: #6ee7b7;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: background 0.25s;
+            position: relative;
+        }
+
+        nav a:hover {
+            background: rgba(52, 211, 153, 0.18);
+        }
+
+        nav a.active {
+            background: rgba(5, 150, 105, 0.2);
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #34d399;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 50px auto;
+            padding: 0 20px 60px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .page-title .icon {
+            font-size: 3rem;
+        }
+
+        .page-title h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #34d399, #6ee7b7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 8px 0 6px;
+        }
+
+        .page-title p {
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        /* ── Vertical Ticker Strips ──────────────────────── */
+        .ticker-side {
+            position: fixed;
+            top: 60px;
+            bottom: 0;
+            width: 148px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 2;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 10%, black 28%, black 72%, rgba(0, 0, 0, 0.55) 90%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 10%, black 28%, black 72%, rgba(0, 0, 0, 0.55) 90%, transparent 100%);
+        }
+
+        .ticker-side.left {
+            left: 0;
+            padding-left: 10px;
+        }
+
+        .ticker-side.right {
+            right: 0;
+            padding-right: 10px;
+            text-align: right;
+        }
+
+        @media (max-width: 1200px) {
+            .ticker-side {
+                display: none;
+            }
+        }
+
+        .ticker-track {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 16px 6px;
+            will-change: transform;
+        }
+
+        .ticker-side.left .ticker-track {
+            animation: scrollDown 30s linear infinite;
+        }
+
+        .ticker-side.right .ticker-track {
+            animation: scrollUp 34s linear infinite;
+        }
+
+        @keyframes scrollDown {
+            0% {
+                transform: translateY(0)
+            }
+
+            100% {
+                transform: translateY(-50%)
+            }
+        }
+
+        @keyframes scrollUp {
+            0% {
+                transform: translateY(-50%)
+            }
+
+            100% {
+                transform: translateY(0)
+            }
+        }
+
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            padding: 5px 10px;
+            border-radius: 50px;
+            border: 1px solid rgba(5, 150, 105, 0.28);
+            color: rgba(52, 211, 153, 0.65);
+        }
+
+        .ticker-item.alt {
+            color: rgba(110, 231, 183, 0.58);
+            border-color: rgba(110, 231, 183, 0.22);
+        }
+
+        .ticker-item.dim {
+            color: rgba(16, 185, 129, 0.48);
+            border-color: rgba(16, 185, 129, 0.18);
+        }
+
+        .result-banner {
+            padding: 20px 28px;
+            border-radius: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-banner.high {
+            background: rgba(220, 38, 38, 0.18);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+        }
+
+        .result-banner.low {
+            background: rgba(16, 185, 129, 0.18);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+
+        .result-banner h2 {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+
+        .result-banner .prob {
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+
+        .error-banner {
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            color: #fca5a5;
+            font-size: 0.88rem;
+        }
+
+        .info-note {
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 0.82rem;
+            color: #6ee7b7;
+            line-height: 1.6;
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 36px;
+            backdrop-filter: blur(10px);
+            transition: border-color 0.35s, box-shadow 0.35s;
+        }
+
+        .form-card:hover {
+            border-color: rgba(5, 150, 105, 0.4);
+            box-shadow: 0 0 32px rgba(5, 150, 105, 0.12);
+        }
+
+        .section-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #34d399;
+            opacity: 0.7;
+            margin: 20px 0 12px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(52, 211, 153, 0.15);
+        }
+
+        .section-label:first-child {
+            margin-top: 0;
+            border-top: none;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 440px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 0.82rem;
+            color: #6ee7b7;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .form-group small {
+            font-size: 0.73rem;
+            color: #6b7280;
+        }
+
+        .form-group input {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #f3f4f6;
+            font-size: 0.88rem;
+            width: 100%;
+            min-width: 0;
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        .form-group input:focus {
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+        }
+
+        .submit-btn {
+            margin-top: 32px;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #059669, #34d399);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.25s, transform 0.2s, box-shadow 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -75%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+            transform: skewX(-20deg);
+            transition: left 0s;
+        }
+
+        .submit-btn:hover {
+            opacity: 0.88;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.4);
+        }
+
+        .submit-btn:hover::before {
+            left: 130%;
+            transition: left 0.5s ease;
+        }
+
+        .ref-link {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: #6b7280;
+        }
+
+        .ref-link a {
+            color: #34d399;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes resultPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.35);
+            }
+
+            70% {
+                box-shadow: 0 0 0 12px rgba(5, 150, 105, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(5, 150, 105, 0);
+            }
+        }
+
+        .result-banner {
+            animation: fadeIn 0.5s ease, resultPulse 1.2s ease 0.4s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── LEFT Ticker (scrolls down) ── -->
+    <div class="ticker-side left" aria-hidden="true">
+        <div class="ticker-track">
+            <span class="ticker-item">🔬 Biopsy</span>
+            <span class="ticker-item alt">🫀 Cell Nucleus</span>
+            <span class="ticker-item dim">📊 Malignant</span>
+            <span class="ticker-item">🧬 FNA</span>
+            <span class="ticker-item alt">🔍 Perimeter</span>
+            <span class="ticker-item dim">📏 Texture</span>
+            <span class="ticker-item">➕ Concavity</span>
+            <span class="ticker-item alt">📉 Smoothness</span>
+            <span class="ticker-item dim">🔵 Benign</span>
+            <span class="ticker-item">⚠️ Malignancy</span>
+            <span class="ticker-item alt">📍 Radius</span>
+            <span class="ticker-item dim">🧠 Symmetry</span>
+            <span class="ticker-item">🔬 Biopsy</span>
+            <span class="ticker-item alt">🫀 Cell Nucleus</span>
+            <span class="ticker-item dim">📊 Malignant</span>
+            <span class="ticker-item">🧬 FNA</span>
+            <span class="ticker-item alt">🔍 Perimeter</span>
+            <span class="ticker-item dim">📏 Texture</span>
+            <span class="ticker-item">➕ Concavity</span>
+            <span class="ticker-item alt">📉 Smoothness</span>
+            <span class="ticker-item dim">🔵 Benign</span>
+            <span class="ticker-item">⚠️ Malignancy</span>
+            <span class="ticker-item alt">📍 Radius</span>
+            <span class="ticker-item dim">🧠 Symmetry</span>
+        </div>
+    </div>
+
+    <!-- ── RIGHT Ticker (scrolls up) ── -->
+    <div class="ticker-side right" aria-hidden="true">
+        <div class="ticker-track">
+            <span class="ticker-item">🤖 Random Forest</span>
+            <span class="ticker-item alt">📊 Logistic Reg</span>
+            <span class="ticker-item dim">🎯 Precision</span>
+            <span class="ticker-item">📉 Recall</span>
+            <span class="ticker-item alt">🧠 Scikit-learn</span>
+            <span class="ticker-item dim">⚙️ StandardScaler</span>
+            <span class="ticker-item">🔥 AUC-ROC</span>
+            <span class="ticker-item alt">📦 Joblib</span>
+            <span class="ticker-item dim">🎓 Train-Test</span>
+            <span class="ticker-item">📈 F1-Score</span>
+            <span class="ticker-item alt">🧩 Confusion Mx</span>
+            <span class="ticker-item dim">🔢 30 Features</span>
+            <span class="ticker-item">🤖 Random Forest</span>
+            <span class="ticker-item alt">📊 Logistic Reg</span>
+            <span class="ticker-item dim">🎯 Precision</span>
+            <span class="ticker-item">📉 Recall</span>
+            <span class="ticker-item alt">🧠 Scikit-learn</span>
+            <span class="ticker-item dim">⚙️ StandardScaler</span>
+            <span class="ticker-item">🔥 AUC-ROC</span>
+            <span class="ticker-item alt">📦 Joblib</span>
+            <span class="ticker-item dim">🎓 Train-Test</span>
+            <span class="ticker-item">📈 F1-Score</span>
+            <span class="ticker-item alt">🧩 Confusion Mx</span>
+            <span class="ticker-item dim">🔢 30 Features</span>
+        </div>
+    </div>
+
+    <nav>
+        <a class="brand" href="/">🧬 MediPredict</a>
+        <a href="/diabetes">Diabetes</a>
+        <a href="/heart">Heart</a>
+        <a href="/cancer" class="active">Cancer</a>
+    </nav>
+
+    <div class="container">
+
+        <div class="page-title">
+            <div class="icon">🔬</div>
+            <h1>Breast Cancer Risk Prediction</h1>
+            <p>Enter 30 FNA cell-nucleus features to predict malignancy.</p>
+        </div>
+
+        {% if result %}
+        <div class="result-banner {% if prediction == 1 %}high{% else %}low{% endif %}">
+            <h2>{{ result }}</h2>
+            <p class="prob">Estimated malignancy probability: <strong>{{ probability }}</strong></p>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="error-banner">⚠️ {{ error }}</div>
+        {% endif %}
+
+        <div class="info-note">
+            ℹ️ Features are computed from digitized images of fine needle aspirate (FNA) of breast masses.
+            They describe characteristics of cell nuclei. <em>High Risk = Malignant · Low Risk = Benign</em>.
+            Example values from benign sample: mean_radius≈12, mean_texture≈18, mean_perimeter≈78, mean_area≈477.
+        </div>
+
+        <div class="form-card">
+            <form action="/predict/cancer" method="POST">
+
+                <!-- ── MEAN FEATURES ─────────────────────────────────── -->
+                <p class="section-label">📐 Mean Features</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="mean_radius">Mean Radius</label>
+                        <small>e.g. 6–30</small>
+                        <input type="number" id="mean_radius" name="mean_radius" step="0.001" placeholder="e.g. 14.1"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_texture">Mean Texture</label>
+                        <small>e.g. 9–40</small>
+                        <input type="number" id="mean_texture" name="mean_texture" step="0.001" placeholder="e.g. 19.3"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_perimeter">Mean Perimeter</label>
+                        <small>e.g. 40–190</small>
+                        <input type="number" id="mean_perimeter" name="mean_perimeter" step="0.001"
+                            placeholder="e.g. 92.0" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_area">Mean Area</label>
+                        <small>e.g. 140–2500</small>
+                        <input type="number" id="mean_area" name="mean_area" step="0.001" placeholder="e.g. 655"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_smoothness">Mean Smoothness</label>
+                        <small>e.g. 0.05–0.16</small>
+                        <input type="number" id="mean_smoothness" name="mean_smoothness" step="0.00001"
+                            placeholder="e.g. 0.096" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_compactness">Mean Compactness</label>
+                        <small>e.g. 0.02–0.35</small>
+                        <input type="number" id="mean_compactness" name="mean_compactness" step="0.00001"
+                            placeholder="e.g. 0.104" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_concavity">Mean Concavity</label>
+                        <small>e.g. 0–0.43</small>
+                        <input type="number" id="mean_concavity" name="mean_concavity" step="0.00001"
+                            placeholder="e.g. 0.089" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_concave_points">Mean Concave Pts</label>
+                        <small>e.g. 0–0.20</small>
+                        <input type="number" id="mean_concave_points" name="mean_concave_points" step="0.00001"
+                            placeholder="e.g. 0.048" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_symmetry">Mean Symmetry</label>
+                        <small>e.g. 0.10–0.30</small>
+                        <input type="number" id="mean_symmetry" name="mean_symmetry" step="0.00001"
+                            placeholder="e.g. 0.181" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="mean_fractal_dimension">Mean Fractal Dim</label>
+                        <small>e.g. 0.05–0.10</small>
+                        <input type="number" id="mean_fractal_dimension" name="mean_fractal_dimension" step="0.00001"
+                            placeholder="e.g. 0.063" required />
+                    </div>
+                </div>
+
+                <!-- ── SE FEATURES ───────────────────────────────────── -->
+                <p class="section-label">📏 Standard Error Features</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="se_radius">SE Radius</label>
+                        <small>e.g. 0.1–2.9</small>
+                        <input type="number" id="se_radius" name="se_radius" step="0.0001" placeholder="e.g. 0.41"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_texture">SE Texture</label>
+                        <small>e.g. 0.4–4.9</small>
+                        <input type="number" id="se_texture" name="se_texture" step="0.0001" placeholder="e.g. 1.22"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_perimeter">SE Perimeter</label>
+                        <small>e.g. 0.8–21</small>
+                        <input type="number" id="se_perimeter" name="se_perimeter" step="0.0001" placeholder="e.g. 2.87"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_area">SE Area</label>
+                        <small>e.g. 6–542</small>
+                        <input type="number" id="se_area" name="se_area" step="0.001" placeholder="e.g. 40.3"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_smoothness">SE Smoothness</label>
+                        <small>e.g. 0.002–0.03</small>
+                        <input type="number" id="se_smoothness" name="se_smoothness" step="0.000001"
+                            placeholder="e.g. 0.007" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_compactness">SE Compactness</label>
+                        <small>e.g. 0.002–0.14</small>
+                        <input type="number" id="se_compactness" name="se_compactness" step="0.000001"
+                            placeholder="e.g. 0.025" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_concavity">SE Concavity</label>
+                        <small>e.g. 0–0.40</small>
+                        <input type="number" id="se_concavity" name="se_concavity" step="0.000001"
+                            placeholder="e.g. 0.032" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_concave_points">SE Concave Pts</label>
+                        <small>e.g. 0–0.05</small>
+                        <input type="number" id="se_concave_points" name="se_concave_points" step="0.000001"
+                            placeholder="e.g. 0.010" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_symmetry">SE Symmetry</label>
+                        <small>e.g. 0.008–0.08</small>
+                        <input type="number" id="se_symmetry" name="se_symmetry" step="0.000001"
+                            placeholder="e.g. 0.021" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="se_fractal_dimension">SE Fractal Dim</label>
+                        <small>e.g. 0.001–0.03</small>
+                        <input type="number" id="se_fractal_dimension" name="se_fractal_dimension" step="0.000001"
+                            placeholder="e.g. 0.004" required />
+                    </div>
+                </div>
+
+                <!-- ── WORST FEATURES ────────────────────────────────── -->
+                <p class="section-label">⚠️ Worst (Largest) Features</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="worst_radius">Worst Radius</label>
+                        <small>e.g. 7–36</small>
+                        <input type="number" id="worst_radius" name="worst_radius" step="0.001" placeholder="e.g. 16.7"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_texture">Worst Texture</label>
+                        <small>e.g. 12–50</small>
+                        <input type="number" id="worst_texture" name="worst_texture" step="0.001"
+                            placeholder="e.g. 25.4" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_perimeter">Worst Perimeter</label>
+                        <small>e.g. 50–251</small>
+                        <input type="number" id="worst_perimeter" name="worst_perimeter" step="0.001"
+                            placeholder="e.g. 107.3" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_area">Worst Area</label>
+                        <small>e.g. 185–4254</small>
+                        <input type="number" id="worst_area" name="worst_area" step="0.001" placeholder="e.g. 880.6"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_smoothness">Worst Smoothness</label>
+                        <small>e.g. 0.07–0.22</small>
+                        <input type="number" id="worst_smoothness" name="worst_smoothness" step="0.00001"
+                            placeholder="e.g. 0.132" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_compactness">Worst Compactness</label>
+                        <small>e.g. 0.03–1.06</small>
+                        <input type="number" id="worst_compactness" name="worst_compactness" step="0.00001"
+                            placeholder="e.g. 0.254" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_concavity">Worst Concavity</label>
+                        <small>e.g. 0–1.25</small>
+                        <input type="number" id="worst_concavity" name="worst_concavity" step="0.00001"
+                            placeholder="e.g. 0.272" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_concave_points">Worst Concave Pts</label>
+                        <small>e.g. 0–0.29</small>
+                        <input type="number" id="worst_concave_points" name="worst_concave_points" step="0.00001"
+                            placeholder="e.g. 0.114" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_symmetry">Worst Symmetry</label>
+                        <small>e.g. 0.16–0.66</small>
+                        <input type="number" id="worst_symmetry" name="worst_symmetry" step="0.00001"
+                            placeholder="e.g. 0.291" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="worst_fractal_dimension">Worst Fractal Dim</label>
+                        <small>e.g. 0.05–0.21</small>
+                        <input type="number" id="worst_fractal_dimension" name="worst_fractal_dimension" step="0.00001"
+                            placeholder="e.g. 0.085" required />
+                    </div>
+                </div>
+
+                <button class="submit-btn" type="submit">🔬 Predict Cancer Risk</button>
+            </form>
+
+            <p class="ref-link">
+                Dataset: <a href="https://scikit-learn.org/stable/datasets/toy_dataset.html#breast-cancer-dataset"
+                    target="_blank">
+                    sklearn Breast Cancer Wisconsin Dataset
+                </a>
+            </p>
+        </div>
+
+    </div>
+</body>
+
+</html>

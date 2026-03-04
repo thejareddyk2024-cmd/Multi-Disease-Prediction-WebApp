@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Disease Prediction System</title>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(145deg, #0a0a1a 0%, #0d1f2d 40%, #12243a 70%, #0a1628 100%);
+      background-size: 300% 300%;
+      animation: bgShift 18s ease infinite, fadeInPage 0.7s ease forwards;
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    @keyframes bgShift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    @keyframes fadeInPage {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Subtle ambient glow blobs */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -120px;
+      left: -120px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Navigation ─────────────────────────────────────────── */
+    nav {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.15);
+      padding: 14px 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    nav .brand {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fbbf24;
+      text-decoration: none;
+      margin-right: auto;
+      letter-spacing: 0.01em;
+    }
+
+    nav a {
+      color: #fcd34d;
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: background 0.25s, color 0.25s;
+      position: relative;
+    }
+
+    nav a:hover {
+      background: rgba(251, 191, 36, 0.18);
+      color: #fff;
+    }
+
+    nav a.active {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      font-weight: 700;
+    }
+
+    nav a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #fbbf24;
+    }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 80px 20px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero .badge {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: #fbbf24;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.9rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #fbbf24, #f97316, #14b8a6, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: #94a3b8;
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.75;
+    }
+
+    /* ── Cards Grid ─────────────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 28px;
+      padding: 36px 40px 70px;
+      width: 100%;
+      max-width: 980px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 20px;
+      padding: 38px 28px;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Centered diagonal light-streak accent on each card */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      left: 15%;
+      width: 70%;
+      height: 160%;
+      background: linear-gradient(120deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.04) 45%,
+          rgba(255, 255, 255, 0.07) 50%,
+          rgba(255, 255, 255, 0.04) 55%,
+          transparent 100%);
+      transform: skewX(-18deg);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Keep card content above the streak */
+    .card>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Per-card accent glow on hover */
+    .card.card-diabetes:hover {
+      transform: translateY(-7px);
+      border-color: rgba(167, 139, 250, 0.35);
+      box-shadow: 0 18px 48px rgba(124, 58, 237, 0.28);
+    }
+
+    .card.card-heart:hover {
+      transform: translateY(-7px);
+      border-color: rgba(248, 113, 113, 0.35);
+      box-shadow: 0 18px 48px rgba(220, 38, 38, 0.28);
+    }
+
+    .card.card-cancer:hover {
+      transform: translateY(-7px);
+      border-color: rgba(52, 211, 153, 0.35);
+      box-shadow: 0 18px 48px rgba(5, 150, 105, 0.28);
+    }
+
+    .card .icon {
+      font-size: 3rem;
+      margin-bottom: 18px;
+      display: block;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+      color: #f1f5f9;
+      font-weight: 700;
+    }
+
+    .card p {
+      font-size: 0.87rem;
+      color: #94a3b8;
+      line-height: 1.65;
+      margin-bottom: 26px;
+    }
+
+    /* Divider line inside card */
+    .card .divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      margin: 0 0 22px;
+      border: none;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 11px 28px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity 0.25s, transform 0.2s, box-shadow 0.25s;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .btn:hover {
+      opacity: 0.88;
+      transform: scale(1.05);
+    }
+
+    .btn-purple {
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      box-shadow: 0 4px 18px rgba(124, 58, 237, 0.35);
+    }
+
+    .btn-red {
+      background: linear-gradient(135deg, #dc2626, #f87171);
+      box-shadow: 0 4px 18px rgba(220, 38, 38, 0.35);
+    }
+
+    .btn-teal {
+      background: linear-gradient(135deg, #0d9488, #34d399);
+      box-shadow: 0 4px 18px rgba(13, 148, 136, 0.35);
+    }
+
+    /* ── Stats Bar ───────────────────────────────────────────── */
+    .stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      padding: 0 20px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat .num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fbbf24;
+    }
+
+    .stat .lbl {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Vertical Ticker Strips ──────────────────────────────── */
+    .ticker-side {
+      position: fixed;
+      top: 60px;
+      bottom: 0;
+      width: 148px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+      -webkit-mask-image: linear-gradient(to bottom,
+          transparent 0%,
+          rgba(0, 0, 0, 0.55) 10%,
+          rgba(0, 0, 0, 1) 28%,
+          rgba(0, 0, 0, 1) 72%,
+          rgba(0, 0, 0, 0.55) 90%,
+          transparent 100%);
+      mask-image: linear-gradient(to bottom,
+          transparent 0%,
+          rgba(0, 0, 0, 0.55) 10%,
+          rgba(0, 0, 0, 1) 28%,
+          rgba(0, 0, 0, 1) 72%,
+          rgba(0, 0, 0, 0.55) 90%,
+          transparent 100%);
+    }
+
+    .ticker-side.left {
+      left: 0;
+      padding-left: 10px;
+    }
+
+    .ticker-side.right {
+      right: 0;
+      padding-right: 10px;
+      text-align: right;
+    }
+
+    @media (max-width: 1200px) {
+      .ticker-side {
+        display: none;
+      }
+    }
+
+    .ticker-track {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px 6px;
+      will-change: transform;
+    }
+
+    .ticker-side.left .ticker-track {
+      animation: scrollDown 30s linear infinite;
+    }
+
+    .ticker-side.right .ticker-track {
+      animation: scrollUp 34s linear infinite;
+    }
+
+    @keyframes scrollDown {
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(-50%);
+      }
+    }
+
+    @keyframes scrollUp {
+      0% {
+        transform: translateY(-50%);
+      }
+
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.16);
+    }
+
+    .ticker-item.gold {
+      color: rgba(251, 191, 36, 0.42);
+      border-color: rgba(251, 191, 36, 0.14);
+    }
+
+    .ticker-item.teal {
+      color: rgba(20, 184, 166, 0.42);
+      border-color: rgba(20, 184, 166, 0.14);
+    }
+
+    .ticker-item.blue {
+      color: rgba(56, 189, 248, 0.42);
+      border-color: rgba(56, 189, 248, 0.14);
+    }
+
+    .ticker-item.rose {
+      color: rgba(251, 113, 133, 0.42);
+      border-color: rgba(251, 113, 133, 0.14);
+    }
+
+    .ticker-item.green {
+      color: rgba(74, 222, 128, 0.42);
+      border-color: rgba(74, 222, 128, 0.14);
+    }
+
+    /* ── Card entrance animation ────────────────────────────── */
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ── Floating particle animation ────────────────────────── */
+    @keyframes floatDot {
+
+      0%,
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      50% {
+        transform: translateY(-18px);
+        opacity: 0.5;
+      }
+    }
+
+    /* ── Shimmer sweep on buttons ───────────────────────────── */
+    .btn {
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -75%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+      transform: skewX(-20deg);
+      transition: left 0s;
+    }
+
+    .btn:hover::before {
+      left: 130%;
+      transition: left 0.55s ease;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      margin-top: auto;
+      padding: 22px;
+      font-size: 0.8rem;
+      color: #475569;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <!-- LEFT Ticker Strip (scrolls downward) -->
+  <div class="ticker-side left" aria-hidden="true">
+    <div class="ticker-track">
+      <!-- set 1 -->
+      <span class="ticker-item gold">🩸 Diabetes</span>
+      <span class="ticker-item teal">❤ Cardiology</span>
+      <span class="ticker-item blue">🔬 Oncology</span>
+      <span class="ticker-item rose">🧠 Neural Net</span>
+      <span class="ticker-item green">📊 Accuracy</span>
+      <span class="ticker-item gold">🔬 Biopsy</span>
+      <span class="ticker-item teal">📍 Glucose</span>
+      <span class="ticker-item blue">🧡 ECG</span>
+      <span class="ticker-item rose">🎯 Precision</span>
+      <span class="ticker-item green">📉 Cholesterol</span>
+      <span class="ticker-item gold">🩺 Insulin</span>
+      <span class="ticker-item teal">📅 BMI</span>
+      <span class="ticker-item blue">⚕️ Diagnosis</span>
+      <span class="ticker-item rose">📈 F1-Score</span>
+      <span class="ticker-item green">🤫 Symptom</span>
+      <!-- set 2 (duplicate for seamless loop) -->
+      <span class="ticker-item gold">🩸 Diabetes</span>
+      <span class="ticker-item teal">❤ Cardiology</span>
+      <span class="ticker-item blue">🔬 Oncology</span>
+      <span class="ticker-item rose">🧠 Neural Net</span>
+      <span class="ticker-item green">📊 Accuracy</span>
+      <span class="ticker-item gold">🔬 Biopsy</span>
+      <span class="ticker-item teal">📍 Glucose</span>
+      <span class="ticker-item blue">🧡 ECG</span>
+      <span class="ticker-item rose">🎯 Precision</span>
+      <span class="ticker-item green">📉 Cholesterol</span>
+      <span class="ticker-item gold">🩺 Insulin</span>
+      <span class="ticker-item teal">📅 BMI</span>
+      <span class="ticker-item blue">⚕️ Diagnosis</span>
+      <span class="ticker-item rose">📈 F1-Score</span>
+      <span class="ticker-item green">🤫 Symptom</span>
+    </div>
+  </div>
+
+  <!-- RIGHT Ticker Strip (scrolls upward) -->
+  <div class="ticker-side right" aria-hidden="true">
+    <div class="ticker-track">
+      <!-- set 1 -->
+      <span class="ticker-item blue">🤖 Random Forest</span>
+      <span class="ticker-item gold">📊 Logistic Reg</span>
+      <span class="ticker-item green">🔹 Scikit-learn</span>
+      <span class="ticker-item rose">📉 Overfitting</span>
+      <span class="ticker-item teal">🎯 Recall</span>
+      <span class="ticker-item gold">🔥 AUC-ROC</span>
+      <span class="ticker-item blue">⚙️ Bagging</span>
+      <span class="ticker-item green">📦 Joblib</span>
+      <span class="ticker-item rose">📁 Dataset</span>
+      <span class="ticker-item teal">🧩 Confusion Mx</span>
+      <span class="ticker-item gold">⚡ Flask API</span>
+      <span class="ticker-item blue">🔢 StandardScaler</span>
+      <span class="ticker-item green">🧠 Ensemble</span>
+      <span class="ticker-item rose">🎓 Train-Test</span>
+      <span class="ticker-item teal">📍 Pandas</span>
+      <!-- set 2 (duplicate for seamless loop) -->
+      <span class="ticker-item blue">🤖 Random Forest</span>
+      <span class="ticker-item gold">📊 Logistic Reg</span>
+      <span class="ticker-item green">🔹 Scikit-learn</span>
+      <span class="ticker-item rose">📉 Overfitting</span>
+      <span class="ticker-item teal">🎯 Recall</span>
+      <span class="ticker-item gold">🔥 AUC-ROC</span>
+      <span class="ticker-item blue">⚙️ Bagging</span>
+      <span class="ticker-item green">📦 Joblib</span>
+      <span class="ticker-item rose">📁 Dataset</span>
+      <span class="ticker-item teal">🧩 Confusion Mx</span>
+      <span class="ticker-item gold">⚡ Flask API</span>
+      <span class="ticker-item blue">🔢 StandardScaler</span>
+      <span class="ticker-item green">🧠 Ensemble</span>
+      <span class="ticker-item rose">🎓 Train-Test</span>
+      <span class="ticker-item teal">📍 Pandas</span>
+    </div>
+  </div>
+
+  <nav>
+    <a class="brand" href="#">🧬 MediPredict</a>
+    <a href="diabetes.html">Diabetes</a>
+    <a href="heart.html">Heart</a>
+    <a href="cancer.html">Cancer</a>
+  </nav>
+
+  <div class="hero">
+    <span class="badge">🤖 ML-Powered · Free to Use</span>
+    <h1>Multi-Disease Prediction System</h1>
+    <p>
+      An intelligent ML-powered tool to assess your risk for
+      <strong>Diabetes</strong>, <strong>Heart Disease</strong>, and
+      <strong>Breast Cancer</strong> — instantly and privately.
+    </p>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats">
+    <div class="stat">
+      <div class="num">3</div>
+      <div class="lbl">Diseases</div>
+    </div>
+    <div class="stat">
+      <div class="num">51</div>
+      <div class="lbl">Total Features</div>
+    </div>
+    <div class="stat">
+      <div class="num">97%</div>
+      <div class="lbl">Cancer Accuracy</div>
+    </div>
+    <div class="stat">
+      <div class="num">87%</div>
+      <div class="lbl">Heart Accuracy</div>
+    </div>
+  </div>
+
+  <div class="cards">
+
+    <!-- Diabetes -->
+    <div class="card card-diabetes" style="animation: cardIn 0.6s ease 0.1s both;">
+      <span class="icon">🩸</span>
+      <h2>Diabetes Prediction</h2>
+      <hr class="divider" />
+      <p>
+        Assess your risk of Type‑2 Diabetes using clinical markers such as
+        glucose level, BMI, age, and insulin levels (8 features).
+      </p>
+      <a class="btn btn-purple" href="diabetes.html">Check Diabetes Risk</a>
+    </div>
+
+    <!-- Heart Disease -->
+    <div class="card card-heart" style="animation: cardIn 0.6s ease 0.25s both;">
+      <span class="icon">❤️</span>
+      <h2>Heart Disease Prediction</h2>
+      <hr class="divider" />
+      <p>
+        Evaluate coronary heart disease risk based on cholesterol, blood
+        pressure, chest pain type, and 10 other clinical indicators.
+      </p>
+      <a class="btn btn-red" href="heart.html">Check Heart Risk</a>
+    </div>
+
+    <!-- Cancer -->
+    <div class="card card-cancer" style="animation: cardIn 0.6s ease 0.4s both;">
+      <span class="icon">🔬</span>
+      <h2>Breast Cancer Prediction</h2>
+      <hr class="divider" />
+      <p>
+        Predict malignancy using cell-nucleus features such as radius,
+        texture, perimeter, and concavity (30 features from FNA images).
+      </p>
+      <a class="btn btn-teal" href="cancer.html">Check Cancer Risk</a>
+    </div>
+
+  </div>
+
+  <!-- Floating Particles -->
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;" aria-hidden="true">
+    <span
+      style="position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(251,191,36,0.35);top:15%;left:8%;animation:floatDot 9s ease-in-out infinite;"></span>
+    <span
+      style="position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(20,184,166,0.4);top:35%;left:91%;animation:floatDot 12s ease-in-out 2s infinite;"></span>
+    <span
+      style="position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(251,191,36,0.25);top:70%;left:5%;animation:floatDot 10s ease-in-out 1s infinite;"></span>
+    <span
+      style="position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(56,189,248,0.35);top:55%;left:94%;animation:floatDot 8s ease-in-out 3s infinite;"></span>
+    <span
+      style="position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(167,139,250,0.3);top:85%;left:20%;animation:floatDot 11s ease-in-out 0.5s infinite;"></span>
+    <span
+      style="position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(20,184,166,0.35);top:20%;left:78%;animation:floatDot 13s ease-in-out 4s infinite;"></span>
+  </div>
+
+  <footer>
+    ⚕️ This tool is for educational purposes only. Always consult a medical professional.
+  </footer>
+
+</body>
+
+</html>
